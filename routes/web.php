@@ -10,8 +10,8 @@ use App\Http\Controllers\Backend\JadwalController;
 use App\Http\Controllers\Backend\BookingController;
 use App\Http\Controllers\BookingUserController;
 use Illuminate\Support\Facades\Auth;
-
-
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Response;
 
 Route::get('/', [FrontendController::class, 'index']);
 Route::get('booking/riwayat', [FrontendController::class, 'riwayat'])->name('booking_riwayat');
@@ -27,8 +27,27 @@ Route::middleware('auth')->group(function () {
 Route::get('booking-export', [BookingController::class, 'export'])->name('booking.export');
 
 
+Route::get('/images/{path}', function ($path) {
+    $storagePath = storage_path('app/public/' . $path);
 
-Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+    if (! File::exists($storagePath)) {
+        abort(404);
+    }
+
+    $file = File::get($storagePath);
+    $type = File::mimeType($storagePath);
+
+    $response = Response::make($file, 200);
+    $response->header("Content-Type", $type);
+    $response->header("Access-Control-Allow-Origin", "*");
+    $response->header("Access-Control-Allow-Methods", "GET");
+    $response->header("Access-Control-Allow-Headers", "Content-Type");
+
+    return $response;
+})->where('path', '.*');
+
+
+//Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
 //Route Admin dan Backend
 Route::group(['prefix' => 'admin', 'as' => 'backend.', 'middleware' => ['auth', Admin::class]], function() {

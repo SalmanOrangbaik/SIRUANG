@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Ruang extends Model
 {
+    
     public $fillable = ['cover', 'nama', 'kapasitas', 'fasilitas'];
 
     //relasi ke booking

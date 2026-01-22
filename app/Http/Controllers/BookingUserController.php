@@ -1,13 +1,12 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
-use App\Models\Ruang;
 use App\Models\Jadwal;
+use App\Models\Ruang;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
 use RealRashid\SweetAlert\Facades\Alert;
 
 class BookingUserController extends Controller
@@ -15,7 +14,7 @@ class BookingUserController extends Controller
     public function create(Request $request)
     {
         $ruang_id = $request->query('ruang_id');
-        $ruang = Ruang::all();
+        $ruang    = Ruang::all();
 
         return view('booking_create', compact('ruang', 'ruang_id'));
     }
@@ -23,16 +22,24 @@ class BookingUserController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'tanggal' => 'required|date',
-            'jam_mulai' => 'required|date_format:H:i',
+            'tanggal'     => 'required|date',
+            'jam_mulai'   => 'required|date_format:H:i',
             'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
-            'ruang_id' => 'required|exists:ruangs,id',
+            'ruang_id'    => 'required|exists:ruangs,id',
         ]);
 
-        $tanggalInput = Carbon::parse($request->tanggal)->format('Y-m-d');
-        $hariIni = Carbon::now()->format('Y-m-d');
+        if ($request->jam_mulai >= $request->jam_selesai) {
+            Alert::toast(
+                'Jam selesai harus lebih besar dari jam mulai.',
+                'error'
+            )->autoClose(4000);
 
-        
+            return back()->withInput();
+        }
+
+        $tanggalInput = Carbon::parse($request->tanggal)->format('Y-m-d');
+        $hariIni      = Carbon::now()->format('Y-m-d');
+
         if ($tanggalInput < $hariIni) {
             Alert::toast('Tidak bisa booking di tanggal yang sudah lewat.', 'error')->autoClose(4000);
             return back()->withInput();
@@ -85,15 +92,15 @@ class BookingUserController extends Controller
 
         // simpann booking
         Booking::create([
-            'user_id' => Auth::id(),
-            'ruang_id' => $request->ruang_id,
-            'tanggal' => $request->tanggal,
-            'jam_mulai' => $request->jam_mulai,
+            'user_id'     => Auth::id(),
+            'ruang_id'    => $request->ruang_id,
+            'tanggal'     => $request->tanggal,
+            'jam_mulai'   => $request->jam_mulai,
             'jam_selesai' => $request->jam_selesai,
-            'status' => 'pending',
+            'status'      => 'pending',
         ]);
 
         Alert::toast('Booking berhasil dikirim.', 'success')->autoClose(3000);
-        return redirect()->route('booking.create');
+        return redirect()->back()->withInput();
     }
 }

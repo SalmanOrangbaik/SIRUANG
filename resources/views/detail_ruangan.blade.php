@@ -47,15 +47,48 @@
                                     <a href="{{ route('booking_ruangan') }}" class="btn btn-secondary">Kembali</a>
                                 </div>
                                 <div class="col d-grid">
-                                    <a href="{{ route('booking.create', ['ruang_id' => $ruang->id]) }}"
-                                        class="btn btn-primary">Booking Sekarang</a>
+                                    <button type="button" class="btn btn-primary" onclick="toggleBookingForm()">
+                                        Booking Sekarang
+                                    </button>
+                                </div>
+                                <div id="bookingForm" class="mt-4" style="display: none;">
+                                <form action="{{ route('booking.store') }}" method="POST">
+                                    @csrf
+
+                                    <input type="hidden" name="ruang_id" value="{{ $ruang->id }}">
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Tanggal</label>
+                                        <input type="date" name="tanggal" class="form-control" required>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Jam Mulai</label>
+                                        <input type="time" name="jam_mulai" class="form-control" required>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Jam Selesai</label>
+                                        <input type="time" name="jam_selesai" class="form-control" required>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-success">
+                                        Konfirmasi Booking
+                                    </button>
+                                </form>
                                 </div>
                             </div>
-
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
+    <script>
+    function toggleBookingForm() {
+        const form = document.getElementById('bookingForm');
+        form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    }
+</script>
+
 @endsection

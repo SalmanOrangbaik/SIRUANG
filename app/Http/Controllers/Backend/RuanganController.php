@@ -1,13 +1,11 @@
 <?php
-
 namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Ruang;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use RealRashid\SweetAlert\Facades\Alert;
 
 class RuanganController extends Controller
 {
@@ -25,22 +23,22 @@ class RuanganController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'nama'      => 'required|string|max:255|unique:ruangs',
+            'nama' => 'required|string|max:255|unique:ruangs',
             'kapasitas' => 'required|string|max:255',
             'fasilitas' => 'required|string',
-            'cover'     => 'required|image|mimes:jpg,jpeg,png|max:2048',
+            'cover' => 'required|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
         $ruang = new Ruang();
 
         if ($request->hasFile('cover')) {
-            $file       = $request->file('cover');
+            $file = $request->file('cover');
             $randomName = Str::random(20) . '.' . $file->getClientOriginalExtension();
-            $coverPath  = $file->storeAs('cover-ruangan', $randomName, 'public');
+            $coverPath = $file->storeAs('cover-ruangan', $randomName, 'public');
             $ruang->cover = $coverPath;
         }
 
-        $ruang->nama      = $request->nama;
+        $ruang->nama = $request->nama;
         $ruang->kapasitas = $request->kapasitas;
         $ruang->fasilitas = $request->fasilitas;
         $ruang->save();
@@ -66,10 +64,10 @@ class RuanganController extends Controller
         $ruang = Ruang::findOrFail($id);
 
         $request->validate([
-            'nama'      => 'required|string|max:255|unique:ruangs,nama,' . $ruang->id,
+            'nama' => 'required|string|max:255|unique:ruangs,nama,' . $ruang->id,
             'kapasitas' => 'required|string|max:255',
             'fasilitas' => 'required|string',
-            'cover'     => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'cover' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
         if ($request->hasFile('cover')) {
@@ -106,4 +104,5 @@ class RuanganController extends Controller
         toast('Data ruangan berhasil dihapus.', 'success')->autoClose(3000);
         return redirect()->route('backend.ruang.index');
     }
+    
 }
