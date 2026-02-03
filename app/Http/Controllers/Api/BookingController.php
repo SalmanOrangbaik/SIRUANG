@@ -14,7 +14,7 @@ class BookingController extends Controller
     // Menampilkan semua booking milik user yang sedang login
     public function index()
     {
-        $bookings = Booking::with(['ruang'])
+        $bookings = Booking::with('ruang')
             ->where('user_id', Auth::id())
             ->orderBy('tanggal', 'desc')
             ->get();
@@ -77,13 +77,9 @@ class BookingController extends Controller
         // Cek bentrok dengan booking lain
         $bentrok = Booking::where('ruang_id', $request->ruang_id)
             ->where('tanggal', $request->tanggal)
-            ->where(function ($query) use ($request) {
-                $query->whereBetween('jam_mulai', [$request->jam_mulai, $request->jam_selesai])
-                    ->orWhereBetween('jam_selesai', [$request->jam_mulai, $request->jam_selesai])
-                    ->orWhere(function ($q) use ($request) {
-                        $q->where('jam_mulai', '<=', $request->jam_mulai)
-                            ->where('jam_selesai', '>=', $request->jam_selesai);
-                    });
+            ->where(function ($cek) use ($request) {
+                $cek->where('jam_mulai', '<', $request->jam_selesai)
+                    ->where('jam_selesai', '>', $request->jam_mulai);
             })
             ->exists();
 
@@ -91,7 +87,7 @@ class BookingController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Jadwal bentrok dengan booking lain.',
-            ], 422);
+            ], 409);
         }
 
         // Cek jeda 30 menit
@@ -104,49 +100,68 @@ class BookingController extends Controller
         if ($lastBooking) {
             $lastEnd  = Carbon::parse($request->tanggal . ' ' . $lastBooking->jam_selesai);
             $newStart = Carbon::parse($request->tanggal . ' ' . $request->jam_mulai);
-            $minStart = $lastEnd->copy()->addMinutes(30);
 
-            if ($newStart->lt($minStart)) {
+            if ($newStart->lt($lastEnd->copy()->addMinutes(30))) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Jeda minimal 30 menit setelah booking sebelumnya!',
-                ], 422);
+                ], 409);
             }
         }
 
+        $nextBooking = Booking::where('ruang_id', $request->ruang_id)
+            ->where('tanggal', $request->tanggal)
+            ->where('jam_mulai', '>=', $request->jam_selesai)
+            ->orderBy('jam_mulai', )
+            ->first();
+
+        if ($nextBooking) {
+            $newEnd    = Carbon::parse($request->tanggal . ' ' . $request->jam_selesai);
+            $nextStart = Carbon::parse($request->tanggal . ' ' . $nextBooking->jam_mulai);
+        }
+
+        if ($newEnd->copy()->addMinutes(30)->gt($nextStart)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Jeda minimal 30 menit sebelum booking berikutnya!',
+            ], 409);
+        }
+
         // Cek bentrok dengan jadwal tetap
-        $tanggal     = Carbon::parse($request->tanggal);
-        $hariBooking = $tanggal->locale('id')->isoFormat('dddd');
+        $hariBooking = Carbon::parse($request->tanggal)
+            ->locale('id')
+            ->isoFormat('dddd');
 
         $jadwalTetaps = Jadwal::where('ruang_id', $request->ruang_id)->get();
 
         foreach ($jadwalTetaps as $jadwal) {
-            $hariJadwal = Carbon::parse($jadwal->tanggal)->locale('id')->isoFormat('dddd');
+            $hariJadwal = Carbon::parse($jadwal->tanggal)
+                ->locale('id')
+                ->isoFormat('dddd');
 
             if ($hariJadwal === $hariBooking) {
-                if (($request->jam_mulai >= $jadwal->jam_mulai && $request->jam_mulai < $jadwal->jam_selesai) ||
-                    ($request->jam_selesai > $jadwal->jam_mulai && $request->jam_selesai <= $jadwal->jam_selesai) ||
-                    ($request->jam_mulai <= $jadwal->jam_mulai && $request->jam_selesai >= $jadwal->jam_selesai)) {
+                if (
+                    $jadwal->jam_mulai < $request->jam_selesai &&
+                    $jadwal->jam_selesai > $request->jam_mulai
+                ) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Jadwal bentrok dengan jadwal tetap ruangan.',
-                    ], 422);
+                    ], 409);
+
                 }
             }
         }
 
         try {
-            // PERBAIKAN: Gunakan Auth::id() bukan hardcode 1
             $booking = Booking::create([
-                'user_id'     => Auth::id(), // INI PERBAIKAN UTAMA!
+                'user_id'     => Auth::id(),
                 'ruang_id'    => $request->ruang_id,
                 'tanggal'     => $request->tanggal,
                 'jam_mulai'   => $request->jam_mulai,
                 'jam_selesai' => $request->jam_selesai,
                 'status'      => 'pending',
             ]);
-
-            // Load relationship untuk response
             $booking->load('ruang');
 
             return response()->json([

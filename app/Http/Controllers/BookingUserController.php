@@ -28,15 +28,6 @@ class BookingUserController extends Controller
             'ruang_id'    => 'required|exists:ruangs,id',
         ]);
 
-        if ($request->jam_mulai >= $request->jam_selesai) {
-            Alert::toast(
-                'Jam selesai harus lebih besar dari jam mulai.',
-                'error'
-            )->autoClose(4000);
-
-            return back()->withInput();
-        }
-
         $tanggalInput = Carbon::parse($request->tanggal)->format('Y-m-d');
         $hariIni      = Carbon::now()->format('Y-m-d');
 
