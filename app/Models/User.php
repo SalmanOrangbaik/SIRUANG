@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -11,7 +10,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-     use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -41,14 +40,13 @@ class User extends Authenticatable
      * @return array<string, string>
      */
     protected $casts = [
-    'email_verified_at' => 'datetime',
-    'isAdmin' => 'boolean',
-];
-
+        'email_verified_at' => 'datetime',
+        'isAdmin'           => 'boolean',
+    ];
 
     //relasi one to one ke booking
     public function booking()
     {
-        return $this->hasOne(Booking::class);
+        return $this->hasMany(Booking::class);
     }
 }

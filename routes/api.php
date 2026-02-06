@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\JadwalController;
+use App\Http\Controllers\Api\RiwayatController;
 use App\Http\Controllers\Api\RuanganController;
 use Illuminate\Support\Facades\Route;
 
@@ -24,4 +25,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/bookings', [BookingController::class, 'index']);
     Route::get('/bookings/{id}', [BookingController::class, 'show']);
     Route::post('/booking', [BookingController::class, 'store']);
+
+    // route riwayat booking user
+    Route::get('/riwayat', [RiwayatController::class, 'index']);
 });

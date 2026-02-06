@@ -65,6 +65,16 @@ class BookingController extends Controller
             ], 422);
         }
 
+        $newStart = Carbon::parse($request->tanggal . ' ' . $request->jam_mulai);
+        $newEnd   = Carbon::parse($request->tanggal . ' ' . $request->jam_selesai);
+
+        if ($newEnd <= $newStart) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Jam selesai harus lebih besar dari jam mulai.',
+            ], 422);
+        }
+
         // Cek tanggal sudah lewat
         $tanggalBooking = Carbon::parse($request->tanggal);
         if ($tanggalBooking->isBefore(Carbon::today())) {
@@ -112,19 +122,19 @@ class BookingController extends Controller
         $nextBooking = Booking::where('ruang_id', $request->ruang_id)
             ->where('tanggal', $request->tanggal)
             ->where('jam_mulai', '>=', $request->jam_selesai)
-            ->orderBy('jam_mulai', )
+            ->orderBy('jam_mulai', 'desc')
             ->first();
 
         if ($nextBooking) {
             $newEnd    = Carbon::parse($request->tanggal . ' ' . $request->jam_selesai);
             $nextStart = Carbon::parse($request->tanggal . ' ' . $nextBooking->jam_mulai);
-        }
 
-        if ($newEnd->copy()->addMinutes(30)->gt($nextStart)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Jeda minimal 30 menit sebelum booking berikutnya!',
-            ], 409);
+            if ($newEnd->copy()->addMinutes(30)->gt($nextStart)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Jeda minimal 30 menit sebelum booking berikutnya!',
+                ], 409);
+            }
         }
 
         // Cek bentrok dengan jadwal tetap
