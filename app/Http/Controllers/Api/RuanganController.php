@@ -6,6 +6,7 @@ use App\Models\Ruang;
 
 class RuanganController extends Controller
 {
+
     // Ambil semua data ruangan
     public function index()
     {
