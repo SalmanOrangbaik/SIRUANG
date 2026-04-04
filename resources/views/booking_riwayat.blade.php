@@ -46,6 +46,7 @@
                             <th>Tanggal</th>
                             <th>Waktu</th>
                             <th>Status</th>
+                            <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -80,11 +81,81 @@
                                             <span class="badge bg-secondary">Tidak Diketahui</span>
                                     @endswitch
                                 </td>
+                                <td>
+                                    @if ($data->status !== 'selesai' && $data->status !== 'ditolak'
+                                        && $data->status !== 'diterima')
+                                        <button type="button" class="btn btn-sm btn-outline-warning"
+                                            data-bs-toggle="modal" data-bs-target="#editBookingModal-{{ $data->id }}">
+                                            Edit
+                                        </button>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
             </div>
+
+            @foreach ($booking as $data)
+                <div class="modal fade" id="editBookingModal-{{ $data->id }}" tabindex="-1"
+                    aria-labelledby="editBookingLabel-{{ $data->id }}" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content text-start">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="editBookingLabel-{{ $data->id }}">
+                                    Edit Booking
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <form method="POST" action="{{ route('booking.update', $data->id) }}">
+                                @csrf
+                                @method('PUT')
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Ruangan</label>
+                                        <select name="ruang_id" class="form-select" required>
+                                            @foreach ($ruangs as $ruang)
+                                                <option value="{{ $ruang->id }}"
+                                                    {{ $data->ruang_id == $ruang->id ? 'selected' : '' }}>
+                                                    {{ $ruang->nama }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Tanggal</label>
+                                        <input type="date" name="tanggal" class="form-control"
+                                            value="{{ $data->tanggal }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Jam Mulai</label>
+                                        <input type="time" name="jam_mulai" class="form-control"
+                                            value="{{ \Carbon\Carbon::parse($data->jam_mulai)->format('H:i') }}"
+                                            required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Jam Selesai</label>
+                                        <input type="time" name="jam_selesai" class="form-control"
+                                            value="{{ \Carbon\Carbon::parse($data->jam_selesai)->format('H:i') }}"
+                                            required>
+                                    </div>
+                                    <div class="small text-muted">
+                                        Jika jam sudah dibooking, sistem akan meminta Anda memilih waktu lain.
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary"
+                                        data-bs-dismiss="modal">Batal</button>
+                                    <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
         @else
             <div class="alert alert-info text-center">
                 Belum ada riwayat booking ruangan.

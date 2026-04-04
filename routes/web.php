@@ -23,6 +23,7 @@ Auth::routes();
 Route::middleware('auth')->group(function () {
     Route::get('/booking/create', [BookingUserController::class, 'create'])->name('booking.create');
     Route::post('/booking', [BookingUserController::class, 'store'])->name('booking.store');
+    Route::put('/booking/{booking}', [BookingUserController::class, 'update'])->name('booking.update');
 });
 Route::get('booking-export', [BookingController::class, 'export'])->name('booking.export');
 

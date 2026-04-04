@@ -129,7 +129,7 @@ class BookingController extends Controller
 
         // Cek bentrok dengan jadwal tetap (Jadwal model)
         $tanggal = Carbon::parse($request->tanggal);
-        $hariBooking = $tanggal->locale('id')->isoFormat('dddd'); // contoh: "Senin"
+        $hariBooking = $tanggal->locale('id')->isoFormat('dddd');
 
         $jadwalTetaps = Jadwal::where('ruang_id', $request->ruang_id)->get();
 
@@ -137,7 +137,11 @@ class BookingController extends Controller
             $hariJadwal = Carbon::parse($jadwal->tanggal)->locale('id')->isoFormat('dddd');
 
             if ($hariJadwal === $hariBooking) {
-                if (($request->jam_mulai >= $jadwal->jam_mulai && $request->jam_mulai < $jadwal->jam_selesai) || ($request->jam_selesai > $jadwal->jam_mulai && $request->jam_selesai <= $jadwal->jam_selesai) || ($request->jam_mulai <= $jadwal->jam_mulai && $request->jam_selesai >= $jadwal->jam_selesai)) {
+                if (($request->jam_mulai >= $jadwal->jam_mulai
+                     && $request->jam_mulai < $jadwal->jam_selesai) 
+                     || ($request->jam_selesai > $jadwal->jam_mulai && $request->jam_selesai <= $jadwal->jam_selesai)
+                     || ($request->jam_mulai <= $jadwal->jam_mulai && $request->jam_selesai >= $jadwal->jam_selesai)) 
+                     {
                     toast('Jadwal bentrok dengan jadwal tetap ruangan.', 'error')->autoClose(4000);
                     return back()->withInput();
                 }
