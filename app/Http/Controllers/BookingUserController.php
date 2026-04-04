@@ -65,7 +65,7 @@ class BookingUserController extends Controller
 
         // Cek bentrok dengan jadwal tetap berdasarkan tanggal sama
         $bentrokJadwal = Jadwal::where('ruang_id', $request->ruang_id)
-            ->where('tanggal', $request->tanggal) // cek tanggal yang sama
+            ->where('tanggal', $request->tanggal)
             ->where(function ($data) use ($request) {
                 $data
                     ->whereBetween('jam_mulai', [$request->jam_mulai, $request->jam_selesai])
@@ -93,5 +93,80 @@ class BookingUserController extends Controller
 
         Alert::toast('Booking berhasil dikirim.', 'success')->autoClose(3000);
         return redirect()->back()->withInput();
+    }
+
+    public function update(Request $request, Booking $booking)
+    {
+        if ($booking->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'tanggal'     => 'required|date',
+            'jam_mulai'   => 'required|date_format:H:i',
+            'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
+            'ruang_id'    => 'required|exists:ruangs,id',
+        ]);
+
+        $tanggalInput = Carbon::parse($request->tanggal)->format('Y-m-d');
+        $hariIni      = Carbon::now()->format('Y-m-d');
+
+        if ($tanggalInput < $hariIni) {
+            Alert::toast('Tidak bisa booking di tanggal yang sudah lewat.', 'error')->autoClose(4000);
+            return back()->withInput();
+        }
+
+        if ($tanggalInput === $hariIni) {
+            $jamSelesai = Carbon::parse($request->tanggal . ' ' . $request->jam_selesai);
+            if ($jamSelesai->lt(Carbon::now())) {
+                Alert::toast('Waktu booking sudah lewat. Silakan pilih waktu yang valid.', 'error')->autoClose(4000);
+                return back()->withInput();
+            }
+        }
+
+        $bentrok = Booking::where('ruang_id', $request->ruang_id)
+            ->where('tanggal', $request->tanggal)
+            ->where('id', '!=', $booking->id)
+            ->where(function ($data) use ($request) {
+                $data
+                    ->whereBetween('jam_mulai', [$request->jam_mulai, $request->jam_selesai])
+                    ->orWhereBetween('jam_selesai', [$request->jam_mulai, $request->jam_selesai])
+                    ->orWhere(function ($booking) use ($request) {
+                        $booking->where('jam_mulai', '<=', $request->jam_mulai)->where('jam_selesai', '>=', $request->jam_selesai);
+                    });
+            })
+            ->exists();
+
+        if ($bentrok) {
+            Alert::toast('Jadwal bentrok! Silakan pilih jam lain.', 'error')->autoClose(4000);
+            return back()->withInput();
+        }
+
+        $bentrokJadwal = Jadwal::where('ruang_id', $request->ruang_id)
+            ->where('tanggal', $request->tanggal)
+            ->where(function ($data) use ($request) {
+                $data
+                    ->whereBetween('jam_mulai', [$request->jam_mulai, $request->jam_selesai])
+                    ->orWhereBetween('jam_selesai', [$request->jam_mulai, $request->jam_selesai])
+                    ->orWhere(function ($jadwal) use ($request) {
+                        $jadwal->where('jam_mulai', '<=', $request->jam_mulai)->where('jam_selesai', '>=', $request->jam_selesai);
+                    });
+            })
+            ->exists();
+
+        if ($bentrokJadwal) {
+            Alert::toast('Jadwal bentrok dengan jadwal tetap ruangan.', 'error')->autoClose(4000);
+            return back()->withInput();
+        }
+
+        $booking->update([
+            'ruang_id'    => $request->ruang_id,
+            'tanggal'     => $request->tanggal,
+            'jam_mulai'   => $request->jam_mulai,
+            'jam_selesai' => $request->jam_selesai,
+        ]);
+
+        Alert::toast('Booking berhasil diperbarui.', 'success')->autoClose(3000);
+        return redirect()->back();
     }
 }
