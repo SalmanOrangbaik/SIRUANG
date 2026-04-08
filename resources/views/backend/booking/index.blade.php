@@ -62,6 +62,8 @@
                                             <th>Tanggal</th>
                                             <th>Jam Mulai</th>
                                             <th>Jam Selesai</th>
+                                            <th>Keterangan</th>
+                                            <th>Jumlah Orang</th>
                                             <th>Status</th>
                                             <th>Aksi</th>
                                         </tr>
@@ -75,6 +77,8 @@
                                                 <td>{{ $data->tanggal }}</td>
                                                 <td>{{ \Carbon\Carbon::parse($data->jam_mulai)->format('h:i A') }}</td>
                                                 <td>{{ \Carbon\Carbon::parse($data->jam_selesai)->format('h:i A') }}</td>
+                                                <td>{{ $data->keterangan ?? '-' }}</td>
+                                                <td>{{ $data->jumlah_orang ?? '-' }}</td>
                                                 <td>{{ ucfirst($data->status) }}</td>
                                                 <td>
                                                     <a href="{{ route('backend.booking.edit', $data->id) }}"

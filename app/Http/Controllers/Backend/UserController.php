@@ -27,6 +27,9 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6|confirmed',
             'role' => 'required|in:0,1',
+            'status' => 'required|in:Siswa,Guru',
+            'nisn' => 'nullable|string|max:50|required_if:status,Siswa',
+            'nip' => 'nullable|string|max:50|required_if:status,Guru',
         ]);
 
         User::create([
@@ -34,6 +37,9 @@ class UserController extends Controller
             'email' => $request->email,
             'password' => bcrypt($request->password),
             'isAdmin' => $request->role,
+            'status' => $request->status,
+            'nisn' => $request->status === 'Siswa' ? $request->nisn : null,
+            'nip' => $request->status === 'Guru' ? $request->nip : null,
         ]);
 
         toast('Data user berhasil ditambahkan!', 'success')->autoClose(3000);
@@ -54,6 +60,9 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
             'role' => 'required|in:0,1',
+            'status' => 'required|in:Siswa,Guru',
+            'nisn' => 'nullable|string|max:50|required_if:status,Siswa',
+            'nip' => 'nullable|string|max:50|required_if:status,Guru',
         ];
 
         if ($request->filled('password')) {
@@ -65,6 +74,9 @@ class UserController extends Controller
         $user->name = $validatedData['name'];
         $user->email = $validatedData['email'];
         $user->isAdmin = $validatedData['role'];
+        $user->status = $validatedData['status'];
+        $user->nisn = $validatedData['status'] === 'Siswa' ? ($validatedData['nisn'] ?? null) : null;
+        $user->nip = $validatedData['status'] === 'Guru' ? ($validatedData['nip'] ?? null) : null;
 
         if (!empty($validatedData['password'])) {
             $user->password = bcrypt($validatedData['password']);

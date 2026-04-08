@@ -64,13 +64,31 @@
                                                     @enderror
                                                 </div>
 
+                                                <div class="form-group mb-3 mt-3">
+                                                    <label>Keterangan</label>
+                                                    <input type="text" name="keterangan" value="{{ old('keterangan') }}"
+                                                        class="form-control @error('keterangan') is-invalid @enderror">
+                                                    @error('keterangan')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+
+                                                <div class="form-group mb-3 mt-3">
+                                                    <label>Jumlah Orang</label>
+                                                    <input type="number" name="jumlah_orang" value="{{ old('jumlah_orang') }}"
+                                                        class="form-control @error('jumlah_orang') is-invalid @enderror">
+                                                    @error('jumlah_orang')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+
                                                 <button type="submit" class="btn btn-primary mb-3 mt-2">Simpan</button>
                                             </form>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div> {{-- end container --}}
+                        </div>
                     </div>
                 </div>
             </div>

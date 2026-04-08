@@ -18,6 +18,7 @@ class BookingController extends Controller
             'tanggal'     => 'required|date',
             'jam_mulai'   => 'required|date_format:H:i',
             'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
+            'keterangan'  => 'nullable|string|max:1000',
         ]);
     }
 
@@ -182,6 +183,7 @@ class BookingController extends Controller
                 'tanggal'     => $request->tanggal,
                 'jam_mulai'   => $request->jam_mulai,
                 'jam_selesai' => $request->jam_selesai,
+                'keterangan'  => $request->keterangan,
                 'status'      => 'pending',
             ]);
             $booking->load('ruang');
@@ -240,6 +242,7 @@ class BookingController extends Controller
                 'tanggal'     => $request->tanggal,
                 'jam_mulai'   => $request->jam_mulai,
                 'jam_selesai' => $request->jam_selesai,
+                'keterangan'  => $request->keterangan,
                 'status'      => 'pending',
             ]);
 

@@ -65,6 +65,38 @@
                                                         @enderror
                                                     </div>
 
+                                                    <div class="form-group mb-5 mt-3">
+                                                        <label>Status</label>
+                                                        <select name="status" class="form-control @error('status') is-invalid @enderror">
+                                                            <option value="" disabled {{ old('status') ? '' : 'selected' }}>-- Pilih Status --</option>
+                                                            <option value="Siswa" {{ old('status') == 'Siswa' ? 'selected' : '' }}>Siswa</option>
+                                                            <option value="Guru" {{ old('status') == 'Guru' ? 'selected' : '' }}>Guru</option>
+                                                        </select>
+                                                        @error('status')
+                                                            <div class="invalid-feedback">{{ $message }}</div>
+                                                        @enderror
+                                                    </div>
+
+                                                    <div class="form-group mb-5 mt-3">
+                                                        <label>NISN (untuk Siswa)</label>
+                                                        <input type="text" name="nisn"
+                                                            class="form-control @error('nisn') is-invalid @enderror"
+                                                            value="{{ old('nisn') }}">
+                                                        @error('nisn')
+                                                            <div class="invalid-feedback">{{ $message }}</div>
+                                                        @enderror
+                                                    </div>
+
+                                                    <div class="form-group mb-5 mt-3">
+                                                        <label>NIP (untuk Guru)</label>
+                                                        <input type="text" name="nip"
+                                                            class="form-control @error('nip') is-invalid @enderror"
+                                                            value="{{ old('nip') }}">
+                                                        @error('nip')
+                                                            <div class="invalid-feedback">{{ $message }}</div>
+                                                        @enderror
+                                                    </div>
+
                                                     <button type="submit" class="btn btn-primary mb-3 mt-2">Simpan</button>
                                                 </form>
                                             </div>

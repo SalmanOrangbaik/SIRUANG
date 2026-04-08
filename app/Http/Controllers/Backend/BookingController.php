@@ -86,6 +86,8 @@ class BookingController extends Controller
             'jam_mulai' => 'required|date_format:H:i',
             'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
             'ruang_id' => 'required|exists:ruangs,id',
+            'keterangan' => 'required|string|max:255',
+            'jumlah_orang' => 'required|integer|min:1',
         ]);
 
         //cek jadwal sudah lewat atau blm
@@ -148,15 +150,31 @@ class BookingController extends Controller
             }
         }
 
+        $ruang = Ruang::find($request->ruang_id);
+        if ($ruang) {
+            $kapasitas = (int) preg_replace('/\D+/', '', (string) $ruang->kapasitas);
+            if ($kapasitas > 0 && (int) $request->jumlah_orang > $kapasitas) {
+                toast('Jumlah orang melebihi kapasitas ruangan.', 'error')->autoClose(4000);
+                return back()->withInput();
+            }
+        }
+
         // Simpan booking jika semua valid
-        Booking::create([
-            'user_id' => Auth::id(),
-            'ruang_id' => $request->ruang_id,
-            'tanggal' => $request->tanggal,
-            'jam_mulai' => $request->jam_mulai,
-            'jam_selesai' => $request->jam_selesai,
-            'status' => 'pending',
-        ]);
+        $booking = new Booking();
+        $booking->user_id = Auth::id();
+        $booking->ruang_id = $request->ruang_id;
+        $booking->tanggal = $request->tanggal;
+        $booking->jam_mulai = $request->jam_mulai;
+        $booking->jam_selesai = $request->jam_selesai;
+        $booking->keterangan = $request->keterangan;
+        $booking->jumlah_orang = $request->jumlah_orang;
+        $booking->status = 'pending';
+        $booking->save();
+
+        if ($booking->jumlah_orang === null) {
+            $booking->jumlah_orang = $request->jumlah_orang;
+            $booking->save();
+        }
 
         toast('Booking berhasil ditambahkan.', 'success')->autoClose(3000);
         return redirect()->route('backend.booking.index');
@@ -185,6 +203,8 @@ class BookingController extends Controller
             'jam_mulai' => 'required|',
             'jam_selesai' => 'required|after:jam_mulai',
             'status' => 'required|in:pending,selesai,ditolak,diterima',
+            'keterangan' => 'required|string|max:255',
+            'jumlah_orang' => 'required|integer|min:1',
         ]);
 
         //cek tanggal
@@ -246,15 +266,25 @@ class BookingController extends Controller
             }
         }
 
+        $ruang = Ruang::find($request->ruang_id);
+        if ($ruang) {
+            $kapasitas = (int) preg_replace('/\D+/', '', (string) $ruang->kapasitas);
+            if ($kapasitas > 0 && (int) $request->jumlah_orang > $kapasitas) {
+                toast('Jumlah orang melebihi kapasitas ruangan.', 'error')->autoClose(4000);
+                return back()->withInput();
+            }
+        }
+
         // Update booking
-        $booking->update([
-            'ruang_id' => $request->ruang_id,
-            'user_id' => $request->user_id,
-            'tanggal' => $request->tanggal,
-            'jam_mulai' => $request->jam_mulai,
-            'jam_selesai' => $request->jam_selesai,
-            'status' => $request->status,
-        ]);
+        $booking->ruang_id = $request->ruang_id;
+        $booking->user_id = $request->user_id;
+        $booking->tanggal = $request->tanggal;
+        $booking->jam_mulai = $request->jam_mulai;
+        $booking->jam_selesai = $request->jam_selesai;
+        $booking->keterangan = $request->keterangan;
+        $booking->jumlah_orang = $request->jumlah_orang;
+        $booking->status = $request->status;
+        $booking->save();
 
         toast('Data booking berhasil diperbarui.', 'success')->autoClose(3000);
         return redirect()->route('backend.booking.index'); //ini yg bagian balik ke halaman index

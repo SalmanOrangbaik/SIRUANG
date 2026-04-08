@@ -20,6 +20,16 @@
                         <div class="card-body">
                             <h1 class="h2"><b>{{ $ruang->nama }}</b></h1>
 
+                            @if ($errors->any())
+                                <div class="alert alert-danger">
+                                    <ul class="mb-0">
+                                        @foreach ($errors->all() as $error)
+                                            <li>{{ $error }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
+
                             <ul class="list-inline mt-3">
                                 <br>
                                 <li class="list-inline-item">
@@ -58,18 +68,33 @@
                                     <input type="hidden" name="ruang_id" value="{{ $ruang->id }}">
 
                                     <div class="mb-3">
+                                        <label class="form-label">Kapasitas Maksimal</label>
+                                        <input type="text" class="form-control" value="{{ $ruang->kapasitas }}" readonly>
+                                    </div>
+
+                                    <div class="mb-3">
                                         <label class="form-label">Tanggal</label>
-                                        <input type="date" name="tanggal" class="form-control" required>
+                                        <input type="date" name="tanggal" class="form-control" value="{{ old('tanggal') }}" required>
                                     </div>
 
                                     <div class="mb-3">
                                         <label class="form-label">Jam Mulai</label>
-                                        <input type="time" name="jam_mulai" class="form-control" required>
+                                        <input type="time" name="jam_mulai" class="form-control" value="{{ old('jam_mulai') }}" required>
                                     </div>
 
                                     <div class="mb-3">
                                         <label class="form-label">Jam Selesai</label>
-                                        <input type="time" name="jam_selesai" class="form-control" required>
+                                        <input type="time" name="jam_selesai" class="form-control" value="{{ old('jam_selesai') }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Keterangan</label>
+                                        <input type="text" name="keterangan" class="form-control" maxlength="255"
+                                            value="{{ old('keterangan') }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Jumlah Orang</label>
+                                        <input type="number" name="jumlah_orang" class="form-control" min="1"
+                                            value="{{ old('jumlah_orang') }}" required>
                                     </div>
 
                                     <button type="submit" class="btn btn-success">

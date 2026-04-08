@@ -32,7 +32,7 @@
                         class="nav-item nav-link {{ request()->is('booking/ruangan') ? 'active' : '' }}">Ruangan</a>
                     @auth
                         <a href="{{ route('booking_riwayat') }}"
-                            class="nav-item nav-link {{ request()->is('booking/riwayat') ? 'active' : '' }}">Riwayat</a>
+                            class="nav-item nav-link {{ request()->is('booking/riwayat') ? 'active' : '' }}">Profile</a>
                         <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
                             @csrf
                         </form>

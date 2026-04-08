@@ -25,6 +25,12 @@
                             <strong>Jam Selesai:</strong> {{ \Carbon\Carbon::createFromFormat('H:i:s', $booking->jam_selesai)->format('h:i A') }}
                         </div>
                         <div class="mb-3">
+                            <strong>Keterangan:</strong> {{ $booking->keterangan ?? '-' }}
+                        </div>
+                        <div class="mb-3">
+                            <strong>Jumlah Orang:</strong> {{ $booking->jumlah_orang ?? '-' }}
+                        </div>
+                        <div class="mb-3">
                             <strong>Status:</strong>
                             @if ($booking->status === 'pending')
                                 <span class="badge bg-warning text-dark">Pending</span>

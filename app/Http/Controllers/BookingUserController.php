@@ -21,14 +21,21 @@ class BookingUserController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'tanggal'     => 'required|date',
             'jam_mulai'   => 'required|date_format:H:i',
             'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
             'ruang_id'    => 'required|exists:ruangs,id',
+            'keterangan'  => 'required|string|max:255',
+            'jumlah_orang'=> 'required|integer|min:1',
         ]);
+        $jumlahOrang = (int) $validated['jumlah_orang'];
+        if ($jumlahOrang < 1) {
+            Alert::toast('Jumlah orang tidak valid.', 'error')->autoClose(4000);
+            return back()->withInput();
+        }
 
-        $tanggalInput = Carbon::parse($request->tanggal)->format('Y-m-d');
+        $tanggalInput = Carbon::parse($validated['tanggal'])->format('Y-m-d');
         $hariIni      = Carbon::now()->format('Y-m-d');
 
         if ($tanggalInput < $hariIni) {
@@ -38,7 +45,7 @@ class BookingUserController extends Controller
 
         // Cek jika hari ini dan waktu selesai sudah lewat
         if ($tanggalInput === $hariIni) {
-            $jamSelesai = Carbon::parse($request->tanggal . ' ' . $request->jam_selesai);
+            $jamSelesai = Carbon::parse($validated['tanggal'] . ' ' . $validated['jam_selesai']);
             if ($jamSelesai->lt(Carbon::now())) {
                 Alert::toast('Waktu booking sudah lewat. Silakan pilih waktu yang valid.', 'error')->autoClose(4000);
                 return back()->withInput();
@@ -46,14 +53,14 @@ class BookingUserController extends Controller
         }
 
         //  Cek bentrok booking lain
-        $bentrok = Booking::where('ruang_id', $request->ruang_id)
-            ->where('tanggal', $request->tanggal)
-            ->where(function ($data) use ($request) {
+        $bentrok = Booking::where('ruang_id', $validated['ruang_id'])
+            ->where('tanggal', $validated['tanggal'])
+            ->where(function ($data) use ($validated) {
                 $data
-                    ->whereBetween('jam_mulai', [$request->jam_mulai, $request->jam_selesai])
-                    ->orWhereBetween('jam_selesai', [$request->jam_mulai, $request->jam_selesai])
-                    ->orWhere(function ($booking) use ($request) {
-                        $booking->where('jam_mulai', '<=', $request->jam_mulai)->where('jam_selesai', '>=', $request->jam_selesai);
+                    ->whereBetween('jam_mulai', [$validated['jam_mulai'], $validated['jam_selesai']])
+                    ->orWhereBetween('jam_selesai', [$validated['jam_mulai'], $validated['jam_selesai']])
+                    ->orWhere(function ($booking) use ($validated) {
+                        $booking->where('jam_mulai', '<=', $validated['jam_mulai'])->where('jam_selesai', '>=', $validated['jam_selesai']);
                     });
             })
             ->exists();
@@ -64,14 +71,14 @@ class BookingUserController extends Controller
         }
 
         // Cek bentrok dengan jadwal tetap berdasarkan tanggal sama
-        $bentrokJadwal = Jadwal::where('ruang_id', $request->ruang_id)
-            ->where('tanggal', $request->tanggal)
-            ->where(function ($data) use ($request) {
+        $bentrokJadwal = Jadwal::where('ruang_id', $validated['ruang_id'])
+            ->where('tanggal', $validated['tanggal'])
+            ->where(function ($data) use ($validated) {
                 $data
-                    ->whereBetween('jam_mulai', [$request->jam_mulai, $request->jam_selesai])
-                    ->orWhereBetween('jam_selesai', [$request->jam_mulai, $request->jam_selesai])
-                    ->orWhere(function ($jadwal) use ($request) {
-                        $jadwal->where('jam_mulai', '<=', $request->jam_mulai)->where('jam_selesai', '>=', $request->jam_selesai);
+                    ->whereBetween('jam_mulai', [$validated['jam_mulai'], $validated['jam_selesai']])
+                    ->orWhereBetween('jam_selesai', [$validated['jam_mulai'], $validated['jam_selesai']])
+                    ->orWhere(function ($jadwal) use ($validated) {
+                        $jadwal->where('jam_mulai', '<=', $validated['jam_mulai'])->where('jam_selesai', '>=', $validated['jam_selesai']);
                     });
             })
             ->exists();
@@ -81,15 +88,31 @@ class BookingUserController extends Controller
             return back()->withInput();
         }
 
+        $ruang = Ruang::find($validated['ruang_id']);
+        if ($ruang) {
+            $kapasitas = (int) preg_replace('/\D+/', '', (string) $ruang->kapasitas);
+            if ($kapasitas > 0 && $jumlahOrang > $kapasitas) {
+                Alert::toast('Jumlah orang melebihi kapasitas ruangan. Silakan pilih ruangan lain atau kurangi peserta.', 'error')->autoClose(4000);
+                return back()->withInput();
+            }
+        }
+
         // simpann booking
-        Booking::create([
-            'user_id'     => Auth::id(),
-            'ruang_id'    => $request->ruang_id,
-            'tanggal'     => $request->tanggal,
-            'jam_mulai'   => $request->jam_mulai,
-            'jam_selesai' => $request->jam_selesai,
-            'status'      => 'pending',
-        ]);
+        $booking = new Booking();
+        $booking->user_id = Auth::id();
+        $booking->ruang_id = $validated['ruang_id'];
+        $booking->tanggal = $validated['tanggal'];
+        $booking->jam_mulai = $validated['jam_mulai'];
+        $booking->jam_selesai = $validated['jam_selesai'];
+        $booking->keterangan = $validated['keterangan'];
+        $booking->jumlah_orang = $jumlahOrang;
+        $booking->status = 'pending';
+        $booking->save();
+
+        if ($booking->jumlah_orang === null) {
+            $booking->jumlah_orang = $jumlahOrang;
+            $booking->save();
+        }
 
         Alert::toast('Booking berhasil dikirim.', 'success')->autoClose(3000);
         return redirect()->back()->withInput();
@@ -101,14 +124,21 @@ class BookingUserController extends Controller
             abort(403);
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'tanggal'     => 'required|date',
             'jam_mulai'   => 'required|date_format:H:i',
             'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
             'ruang_id'    => 'required|exists:ruangs,id',
+            'keterangan'  => 'required|string|max:255',
+            'jumlah_orang'=> 'required|integer|min:1',
         ]);
+        $jumlahOrang = (int) $validated['jumlah_orang'];
+        if ($jumlahOrang < 1) {
+            Alert::toast('Jumlah orang tidak valid.', 'error')->autoClose(4000);
+            return back()->withInput();
+        }
 
-        $tanggalInput = Carbon::parse($request->tanggal)->format('Y-m-d');
+        $tanggalInput = Carbon::parse($validated['tanggal'])->format('Y-m-d');
         $hariIni      = Carbon::now()->format('Y-m-d');
 
         if ($tanggalInput < $hariIni) {
@@ -117,22 +147,22 @@ class BookingUserController extends Controller
         }
 
         if ($tanggalInput === $hariIni) {
-            $jamSelesai = Carbon::parse($request->tanggal . ' ' . $request->jam_selesai);
+            $jamSelesai = Carbon::parse($validated['tanggal'] . ' ' . $validated['jam_selesai']);
             if ($jamSelesai->lt(Carbon::now())) {
                 Alert::toast('Waktu booking sudah lewat. Silakan pilih waktu yang valid.', 'error')->autoClose(4000);
                 return back()->withInput();
             }
         }
 
-        $bentrok = Booking::where('ruang_id', $request->ruang_id)
-            ->where('tanggal', $request->tanggal)
+        $bentrok = Booking::where('ruang_id', $validated['ruang_id'])
+            ->where('tanggal', $validated['tanggal'])
             ->where('id', '!=', $booking->id)
-            ->where(function ($data) use ($request) {
+            ->where(function ($data) use ($validated) {
                 $data
-                    ->whereBetween('jam_mulai', [$request->jam_mulai, $request->jam_selesai])
-                    ->orWhereBetween('jam_selesai', [$request->jam_mulai, $request->jam_selesai])
-                    ->orWhere(function ($booking) use ($request) {
-                        $booking->where('jam_mulai', '<=', $request->jam_mulai)->where('jam_selesai', '>=', $request->jam_selesai);
+                    ->whereBetween('jam_mulai', [$validated['jam_mulai'], $validated['jam_selesai']])
+                    ->orWhereBetween('jam_selesai', [$validated['jam_mulai'], $validated['jam_selesai']])
+                    ->orWhere(function ($booking) use ($validated) {
+                        $booking->where('jam_mulai', '<=', $validated['jam_mulai'])->where('jam_selesai', '>=', $validated['jam_selesai']);
                     });
             })
             ->exists();
@@ -142,14 +172,14 @@ class BookingUserController extends Controller
             return back()->withInput();
         }
 
-        $bentrokJadwal = Jadwal::where('ruang_id', $request->ruang_id)
-            ->where('tanggal', $request->tanggal)
-            ->where(function ($data) use ($request) {
+        $bentrokJadwal = Jadwal::where('ruang_id', $validated['ruang_id'])
+            ->where('tanggal', $validated['tanggal'])
+            ->where(function ($data) use ($validated) {
                 $data
-                    ->whereBetween('jam_mulai', [$request->jam_mulai, $request->jam_selesai])
-                    ->orWhereBetween('jam_selesai', [$request->jam_mulai, $request->jam_selesai])
-                    ->orWhere(function ($jadwal) use ($request) {
-                        $jadwal->where('jam_mulai', '<=', $request->jam_mulai)->where('jam_selesai', '>=', $request->jam_selesai);
+                    ->whereBetween('jam_mulai', [$validated['jam_mulai'], $validated['jam_selesai']])
+                    ->orWhereBetween('jam_selesai', [$validated['jam_mulai'], $validated['jam_selesai']])
+                    ->orWhere(function ($jadwal) use ($validated) {
+                        $jadwal->where('jam_mulai', '<=', $validated['jam_mulai'])->where('jam_selesai', '>=', $validated['jam_selesai']);
                     });
             })
             ->exists();
@@ -159,12 +189,22 @@ class BookingUserController extends Controller
             return back()->withInput();
         }
 
-        $booking->update([
-            'ruang_id'    => $request->ruang_id,
-            'tanggal'     => $request->tanggal,
-            'jam_mulai'   => $request->jam_mulai,
-            'jam_selesai' => $request->jam_selesai,
-        ]);
+        $ruang = Ruang::find($validated['ruang_id']);
+        if ($ruang) {
+            $kapasitas = (int) preg_replace('/\D+/', '', (string) $ruang->kapasitas);
+            if ($kapasitas > 0 && $jumlahOrang > $kapasitas) {
+                Alert::toast('Jumlah orang melebihi kapasitas ruangan. Silakan pilih ruangan lain atau kurangi peserta.', 'error')->autoClose(4000);
+                return back()->withInput();
+            }
+        }
+
+        $booking->ruang_id = $validated['ruang_id'];
+        $booking->tanggal = $validated['tanggal'];
+        $booking->jam_mulai = $validated['jam_mulai'];
+        $booking->jam_selesai = $validated['jam_selesai'];
+        $booking->keterangan = $validated['keterangan'];
+        $booking->jumlah_orang = $jumlahOrang;
+        $booking->save();
 
         Alert::toast('Booking berhasil diperbarui.', 'success')->autoClose(3000);
         return redirect()->back();
