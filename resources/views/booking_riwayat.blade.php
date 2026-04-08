@@ -2,7 +2,28 @@
 
 @section('content')
     <div class="container py-5">
-        <h2 class="mb-4 fw-bold text-center">Riwayat Booking Anda</h2>
+        <h2 class="mb-4 fw-bold text-center">Profile</h2>
+
+        <div class="row justify-content-center mb-4">
+            <div class="col-lg-8">
+                <div class="card shadow-sm border-0 rounded-4">
+                    <div class="card-body text-center">
+                        <h4 class="mb-1">{{ Auth::user()->name }}</h4>
+                        <div class="text-muted">{{ Auth::user()->email }}</div>
+                        <div class="mt-2">
+                            @if (Auth::user()->status === 'Siswa')
+                                <div><strong>NISN:</strong> {{ Auth::user()->nisn ?? '-' }}</div>
+                            @elseif (Auth::user()->status === 'Guru')
+                                <div><strong>NIP:</strong> {{ Auth::user()->nip ?? '-' }}</div>
+                            @endif
+                            <div><strong>Status:</strong> {{ Auth::user()->status ?? '-' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h4 class="mb-3 fw-semibold text-center">Riwayat Booking Anda</h4>
 
         {{-- Form Filter --}}
         <form method="GET" action="{{ route('booking_riwayat') }}" class="mb-3">
@@ -45,6 +66,8 @@
                             <th>Ruangan</th>
                             <th>Tanggal</th>
                             <th>Waktu</th>
+                            <th>Keterangan</th>
+                            <th>Jumlah Orang</th>
                             <th>Status</th>
                             <th>Aksi</th>
                         </tr>
@@ -59,6 +82,8 @@
                                     {{ \Carbon\Carbon::parse($data->jam_mulai)->format('h:i A') }} -
                                     {{ \Carbon\Carbon::parse($data->jam_selesai)->format('h:i A') }}
                                 </td>
+                                <td>{{ $data->keterangan ?? '-' }}</td>
+                                <td>{{ $data->jumlah_orang ?? '-' }}</td>
                                 <td>
                                     @switch($data->status)
                                         @case('pending')
@@ -142,6 +167,16 @@
                                             value="{{ \Carbon\Carbon::parse($data->jam_selesai)->format('H:i') }}"
                                             required>
                                     </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Keterangan</label>
+                                        <input type="text" name="keterangan" class="form-control" maxlength="255"
+                                            value="{{ $data->keterangan }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Jumlah Orang</label>
+                                        <input type="number" name="jumlah_orang" class="form-control" min="1"
+                                            value="{{ $data->jumlah_orang }}" required>
+                                    </div>
                                     <div class="small text-muted">
                                         Jika jam sudah dibooking, sistem akan meminta Anda memilih waktu lain.
                                     </div>
@@ -156,6 +191,10 @@
                     </div>
                 </div>
             @endforeach
+
+            <div class="d-flex justify-content-center mt-3">
+                {{ $booking->links('pagination::bootstrap-5') }}
+            </div>
         @else
             <div class="alert alert-info text-center">
                 Belum ada riwayat booking ruangan.

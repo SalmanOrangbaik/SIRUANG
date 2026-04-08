@@ -43,6 +43,8 @@
                 <th>Tanggal</th>
                 <th>Jam Mulai</th>
                 <th>Jam Selesai</th>
+                <th>Keterangan</th>
+                <th>Jumlah Orang</th>
                 <th>Status</th>
             </tr>
         </thead>
@@ -55,11 +57,13 @@
                     <td>{{ \Carbon\Carbon::parse($data->tanggal)->format('d-m-Y') }}</td>
                     <td>{{ $data->jam_mulai }}</td>
                     <td>{{ $data->jam_selesai }}</td>
+                    <td>{{ $data->keterangan ?? '-' }}</td>
+                    <td>{{ $data->jumlah_orang ?? '-' }}</td>
                     <td>{{ ucfirst($data->status) }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" style="text-align: center;">Data tidak ditemukan.</td>
+                    <td colspan="9" style="text-align: center;">Data tidak ditemukan.</td>
                 </tr>
             @endforelse
         </tbody>

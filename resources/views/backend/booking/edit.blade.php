@@ -66,6 +66,17 @@
                         </select>
                     </div>
 
+                    <div class="mb-3">
+                        <label>Keterangan</label>
+                        <input type="text" name="keterangan" class="form-control" value="{{ $booking->keterangan }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Jumlah Orang</label>
+                        <input type="number" name="jumlah_orang" class="form-control" min="1"
+                            value="{{ old('jumlah_orang', $booking->jumlah_orang) }}">
+                    </div>
+
                     <button type="submit" class="btn btn-primary">Update</button>
                 </form>
             </div>

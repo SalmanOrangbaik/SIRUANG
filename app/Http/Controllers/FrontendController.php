@@ -25,7 +25,9 @@ class FrontendController extends Controller
                 'start' => $booking->tanggal . 'T' . $booking->jam_mulai,
                 'end' => $booking->tanggal . 'T' . $booking->jam_selesai,
                 'color' => '#ffc107', // Kuning (Booking Diterima / Selesai)
-                'description' => 'Booking oleh: ' . ($booking->user->name ?? 'Pengguna'),
+                'description' => $booking->keterangan
+                    ? 'Booking: ' . $booking->keterangan
+                    : 'Booking oleh: ' . ($booking->user->name ?? 'Pengguna'),
             ];
         }
 
@@ -61,7 +63,7 @@ class FrontendController extends Controller
             $data->where('status', $request->status);
         }
 
-        $booking = $data->latest()->get();
+        $booking = $data->latest()->paginate(10)->withQueryString();
         $ruangs = Ruang::all();
 
         return view('booking_riwayat', compact('booking', 'ruangs'));
