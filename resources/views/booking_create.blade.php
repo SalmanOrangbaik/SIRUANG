@@ -88,7 +88,6 @@
         </div>
     </div>
 
-    {{-- Tambahkan ini untuk SweetAlert --}}
     @include('sweetalert::alert')
 
     <script>

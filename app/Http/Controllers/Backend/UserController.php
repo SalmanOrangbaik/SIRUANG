@@ -22,7 +22,7 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validatedData = $this->validateWithToast($request, [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6|confirmed',
@@ -33,13 +33,13 @@ class UserController extends Controller
         ]);
 
         User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => bcrypt($request->password),
-            'isAdmin' => $request->role,
-            'status' => $request->status,
-            'nisn' => $request->status === 'Siswa' ? $request->nisn : null,
-            'nip' => $request->status === 'Guru' ? $request->nip : null,
+            'name' => $validatedData['name'],
+            'email' => $validatedData['email'],
+            'password' => bcrypt($validatedData['password']),
+            'isAdmin' => $validatedData['role'],
+            'status' => $validatedData['status'],
+            'nisn' => $validatedData['status'] === 'Siswa' ? ($validatedData['nisn'] ?? null) : null,
+            'nip' => $validatedData['status'] === 'Guru' ? ($validatedData['nip'] ?? null) : null,
         ]);
 
         toast('Data user berhasil ditambahkan!', 'success')->autoClose(3000);
@@ -69,7 +69,7 @@ class UserController extends Controller
             $rules['password'] = 'confirmed|min:6';
         }
 
-        $validatedData = $request->validate($rules);
+        $validatedData = $this->validateWithToast($request, $rules);
 
         $user->name = $validatedData['name'];
         $user->email = $validatedData['email'];

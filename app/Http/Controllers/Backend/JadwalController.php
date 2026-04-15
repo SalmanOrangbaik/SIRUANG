@@ -28,20 +28,25 @@ class JadwalController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $this->validateWithToast($request, [
             'ruang_id' => 'required|exists:ruangs,id',
             'tanggal' => 'required|date',
             'jam_mulai' => 'required|date_format:H:i',
-            'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
+            'jam_selesai' => 'required|date_format:H:i',
             'keterangan' => 'nullable|string|max:200',
         ]);
 
+        if (strtotime($validated['jam_selesai']) <= strtotime($validated['jam_mulai'])) {
+            toast('Jam selesai harus lebih besar dari jam mulai.', 'error')->autoClose(4000);
+            return back()->withInput();
+        }
+
         $jadwal = new Jadwal();
-        $jadwal->ruang_id = $request->ruang_id;
-        $jadwal->tanggal = $request->tanggal;
-        $jadwal->jam_mulai = $request->jam_mulai;
-        $jadwal->jam_selesai = $request->jam_selesai;
-        $jadwal->keterangan = $request->keterangan;
+        $jadwal->ruang_id = $validated['ruang_id'];
+        $jadwal->tanggal = $validated['tanggal'];
+        $jadwal->jam_mulai = $validated['jam_mulai'];
+        $jadwal->jam_selesai = $validated['jam_selesai'];
+        $jadwal->keterangan = $validated['keterangan'] ?? null;
         $jadwal->save();
 
         toast('Data jadwal berhasil disimpan.', 'success')->autoClose(3000);
@@ -63,21 +68,26 @@ class JadwalController extends Controller
 
     public function update(Request $request, string $id)
     {
-        $request->validate([
+        $validated = $this->validateWithToast($request, [
             'ruang_id' => 'required|exists:ruangs,id',
             'tanggal' => 'required|date',
-            'jam_mulai' => 'required',
-            'jam_selesai' => 'required|after:jam_mulai',
+            'jam_mulai' => 'required|date_format:H:i',
+            'jam_selesai' => 'required|date_format:H:i',
             'keterangan' => 'nullable|string',
         ]);
 
+        if (strtotime($validated['jam_selesai']) <= strtotime($validated['jam_mulai'])) {
+            toast('Jam selesai harus lebih besar dari jam mulai.', 'error')->autoClose(4000);
+            return back()->withInput();
+        }
+
         $jadwal = Jadwal::findOrFail($id);
         $jadwal->update([
-            'ruang_id' => $request->ruang_id,
-            'tanggal' => $request->tanggal,
-            'jam_mulai' => $request->jam_mulai,
-            'jam_selesai' => $request->jam_selesai,
-            'keterangan' => $request->keterangan,
+            'ruang_id' => $validated['ruang_id'],
+            'tanggal' => $validated['tanggal'],
+            'jam_mulai' => $validated['jam_mulai'],
+            'jam_selesai' => $validated['jam_selesai'],
+            'keterangan' => $validated['keterangan'] ?? null,
         ]);
 
         toast('Jadwal berhasil diperbarui.', 'success')->autoClose(3000);
