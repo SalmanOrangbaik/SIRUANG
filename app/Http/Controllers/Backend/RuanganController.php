@@ -22,7 +22,7 @@ class RuanganController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $this->validateWithToast($request, [
             'nama' => 'required|string|max:255|unique:ruangs',
             'kapasitas' => 'required|string|max:255',
             'fasilitas' => 'required|string',
@@ -38,9 +38,9 @@ class RuanganController extends Controller
             $ruang->cover = $coverPath;
         }
 
-        $ruang->nama = $request->nama;
-        $ruang->kapasitas = $request->kapasitas;
-        $ruang->fasilitas = $request->fasilitas;
+        $ruang->nama = $validated['nama'];
+        $ruang->kapasitas = $validated['kapasitas'];
+        $ruang->fasilitas = $validated['fasilitas'];
         $ruang->save();
 
         toast('Data ruangan berhasil disimpan.', 'success')->autoClose(3000);
@@ -63,7 +63,7 @@ class RuanganController extends Controller
     {
         $ruang = Ruang::findOrFail($id);
 
-        $request->validate([
+        $validated = $this->validateWithToast($request, [
             'nama' => 'required|string|max:255|unique:ruangs,nama,' . $ruang->id,
             'kapasitas' => 'required|string|max:255',
             'fasilitas' => 'required|string',
@@ -81,9 +81,9 @@ class RuanganController extends Controller
             $ruang->cover = $coverPath;
         }
 
-        $ruang->nama = $request->nama;
-        $ruang->kapasitas = $request->kapasitas;
-        $ruang->fasilitas = $request->fasilitas;
+        $ruang->nama = $validated['nama'];
+        $ruang->kapasitas = $validated['kapasitas'];
+        $ruang->fasilitas = $validated['fasilitas'];
         $ruang->save();
 
         toast('Data ruangan berhasil diupdate.', 'success')->autoClose(3000);

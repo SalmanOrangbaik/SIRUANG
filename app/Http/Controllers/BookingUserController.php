@@ -21,10 +21,10 @@ class BookingUserController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $validated = $this->validateWithToast($request, [
             'tanggal'     => 'required|date',
             'jam_mulai'   => 'required|date_format:H:i',
-            'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
+            'jam_selesai' => 'required|date_format:H:i',
             'ruang_id'    => 'required|exists:ruangs,id',
             'keterangan'  => 'required|string|max:255',
             'jumlah_orang'=> 'required|integer|min:1',
@@ -32,6 +32,12 @@ class BookingUserController extends Controller
         $jumlahOrang = (int) $validated['jumlah_orang'];
         if ($jumlahOrang < 1) {
             Alert::toast('Jumlah orang tidak valid.', 'error')->autoClose(4000);
+            return back()->withInput();
+        }
+
+        if (Carbon::createFromFormat('H:i', $validated['jam_selesai'])
+            ->lessThanOrEqualTo(Carbon::createFromFormat('H:i', $validated['jam_mulai']))) {
+            Alert::toast('Jam selesai harus lebih besar dari jam mulai.', 'error')->autoClose(4000);
             return back()->withInput();
         }
 
@@ -124,10 +130,10 @@ class BookingUserController extends Controller
             abort(403);
         }
 
-        $validated = $request->validate([
+        $validated = $this->validateWithToast($request, [
             'tanggal'     => 'required|date',
             'jam_mulai'   => 'required|date_format:H:i',
-            'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
+            'jam_selesai' => 'required|date_format:H:i',
             'ruang_id'    => 'required|exists:ruangs,id',
             'keterangan'  => 'required|string|max:255',
             'jumlah_orang'=> 'required|integer|min:1',
@@ -135,6 +141,12 @@ class BookingUserController extends Controller
         $jumlahOrang = (int) $validated['jumlah_orang'];
         if ($jumlahOrang < 1) {
             Alert::toast('Jumlah orang tidak valid.', 'error')->autoClose(4000);
+            return back()->withInput();
+        }
+
+        if (Carbon::createFromFormat('H:i', $validated['jam_selesai'])
+            ->lessThanOrEqualTo(Carbon::createFromFormat('H:i', $validated['jam_mulai']))) {
+            Alert::toast('Jam selesai harus lebih besar dari jam mulai.', 'error')->autoClose(4000);
             return back()->withInput();
         }
 
