@@ -28,8 +28,8 @@ class UserController extends Controller
             'password' => 'required|string|min:6|confirmed',
             'role' => 'required|in:0,1',
             'status' => 'required|in:Siswa,Guru',
-            'nisn' => 'nullable|string|max:50|required_if:status,Siswa',
-            'nip' => 'nullable|string|max:50|required_if:status,Guru',
+            'nisn' => 'nullable|integer|max:50|required_if:status,Siswa',
+            'nip' => 'nullable|integer|max:50|required_if:status,Guru',
         ]);
 
         User::create([
@@ -61,8 +61,8 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email,' . $user->id,
             'role' => 'required|in:0,1',
             'status' => 'required|in:Siswa,Guru',
-            'nisn' => 'nullable|string|max:50|required_if:status,Siswa',
-            'nip' => 'nullable|string|max:50|required_if:status,Guru',
+            'nisn' => 'nullable|integer|max:50|required_if:status,Siswa',
+            'nip' => 'nullable|integer|max:50|required_if:status,Guru',
         ];
 
         if ($request->filled('password')) {

@@ -19,8 +19,8 @@ return new class extends Migration
             $table->string('password');
             $table->boolean('isAdmin')->default(0);
             $table->string('status')->nullable();
-            $table->string('nisn')->nullable();
-            $table->string('nip')->nullable();
+            $table->integer('nisn')->nullable();
+            $table->integer('nip')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

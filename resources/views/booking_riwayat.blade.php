@@ -5,11 +5,11 @@
         <h2 class="mb-4 fw-bold text-center">Profile</h2>
 
         <div class="row justify-content-center mb-4">
-            <div class="col-lg-8">
-                <div class="card shadow-sm border-0 rounded-4">
+            <div class="col-lg-8" >
+                <div class="card shadow-sm border-0 rounded-4" style="background-color: #f8FAFC">
                     <div class="card-body text-center">
-                        <h4 class="mb-1">{{ Auth::user()->name }}</h4>
-                        <div class="text-muted">{{ Auth::user()->email }}</div>
+                        <h4 class="mb-1">Nama: {{ Auth::user()->name }}</h4>
+                        <div class="text-muted">Email: {{ Auth::user()->email }}</div>
                         <div class="mt-2">
                             @if (Auth::user()->status === 'Siswa')
                                 <div><strong>NISN:</strong> {{ Auth::user()->nisn ?? '-' }}</div>
