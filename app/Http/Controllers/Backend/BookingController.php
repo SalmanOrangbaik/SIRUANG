@@ -81,31 +81,36 @@ class BookingController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $this->validateWithToast($request, [
             'tanggal' => 'required|date',
             'jam_mulai' => 'required|date_format:H:i',
-            'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
+            'jam_selesai' => 'required|date_format:H:i',
             'ruang_id' => 'required|exists:ruangs,id',
             'keterangan' => 'required|string|max:255',
             'jumlah_orang' => 'required|integer|min:1',
         ]);
 
+        if (strtotime($validated['jam_selesai']) <= strtotime($validated['jam_mulai'])) {
+            toast('Jam selesai harus lebih besar dari jam mulai.', 'error')->autoClose(4000);
+            return back()->withInput();
+        }
+
         //cek jadwal sudah lewat atau blm
-        $tanggalBooking = Carbon::parse($request->tanggal);
+        $tanggalBooking = Carbon::parse($validated['tanggal']);
         if ($tanggalBooking->isBefore(Carbon::today())) {
             toast('Tanggal booking tidak boleh di hari yang sudah lewat.', 'error')->autoClose(4000);
             return back()->withInput();
         }
 
         // Cek bentrok dengan booking lain
-        $bentrok = Booking::where('ruang_id', $request->ruang_id)
-            ->where('tanggal', $request->tanggal)
-            ->where(function ($data) use ($request) {
+        $bentrok = Booking::where('ruang_id', $validated['ruang_id'])
+            ->where('tanggal', $validated['tanggal'])
+            ->where(function ($data) use ($validated) {
                 $data
-                    ->whereBetween('jam_mulai', [$request->jam_mulai, $request->jam_selesai])
-                    ->orWhereBetween('jam_selesai', [$request->jam_mulai, $request->jam_selesai])
-                    ->orWhere(function ($booking) use ($request) {
-                        $booking->where('jam_mulai', '<=', $request->jam_mulai)->where('jam_selesai', '>=', $request->jam_selesai);
+                    ->whereBetween('jam_mulai', [$validated['jam_mulai'], $validated['jam_selesai']])
+                    ->orWhereBetween('jam_selesai', [$validated['jam_mulai'], $validated['jam_selesai']])
+                    ->orWhere(function ($booking) use ($validated) {
+                        $booking->where('jam_mulai', '<=', $validated['jam_mulai'])->where('jam_selesai', '>=', $validated['jam_selesai']);
                     });
             })
             ->exists();
@@ -116,11 +121,11 @@ class BookingController extends Controller
         }
 
         // Cek jeda 30 menit dari booking sebelumnya
-        $lastBooking = Booking::where('ruang_id', $request->ruang_id)->where('tanggal', $request->tanggal)->where('jam_selesai', '<=', $request->jam_mulai)->orderBy('jam_selesai', 'desc')->first();
+        $lastBooking = Booking::where('ruang_id', $validated['ruang_id'])->where('tanggal', $validated['tanggal'])->where('jam_selesai', '<=', $validated['jam_mulai'])->orderBy('jam_selesai', 'desc')->first();
 
         if ($lastBooking) {
-            $lastEnd = Carbon::parse($request->tanggal . ' ' . $lastBooking->jam_selesai);
-            $newStart = Carbon::parse($request->tanggal . ' ' . $request->jam_mulai);
+            $lastEnd = Carbon::parse($validated['tanggal'] . ' ' . $lastBooking->jam_selesai);
+            $newStart = Carbon::parse($validated['tanggal'] . ' ' . $validated['jam_mulai']);
             $minStart = $lastEnd->copy()->addMinutes(30);
 
             if ($newStart->lt($minStart)) {
@@ -130,19 +135,19 @@ class BookingController extends Controller
         }
 
         // Cek bentrok dengan jadwal tetap (Jadwal model)
-        $tanggal = Carbon::parse($request->tanggal);
+        $tanggal = Carbon::parse($validated['tanggal']);
         $hariBooking = $tanggal->locale('id')->isoFormat('dddd');
 
-        $jadwalTetaps = Jadwal::where('ruang_id', $request->ruang_id)->get();
+        $jadwalTetaps = Jadwal::where('ruang_id', $validated['ruang_id'])->get();
 
         foreach ($jadwalTetaps as $jadwal) {
             $hariJadwal = Carbon::parse($jadwal->tanggal)->locale('id')->isoFormat('dddd');
 
             if ($hariJadwal === $hariBooking) {
-                if (($request->jam_mulai >= $jadwal->jam_mulai
-                     && $request->jam_mulai < $jadwal->jam_selesai) 
-                     || ($request->jam_selesai > $jadwal->jam_mulai && $request->jam_selesai <= $jadwal->jam_selesai)
-                     || ($request->jam_mulai <= $jadwal->jam_mulai && $request->jam_selesai >= $jadwal->jam_selesai)) 
+                if (($validated['jam_mulai'] >= $jadwal->jam_mulai
+                     && $validated['jam_mulai'] < $jadwal->jam_selesai) 
+                     || ($validated['jam_selesai'] > $jadwal->jam_mulai && $validated['jam_selesai'] <= $jadwal->jam_selesai)
+                     || ($validated['jam_mulai'] <= $jadwal->jam_mulai && $validated['jam_selesai'] >= $jadwal->jam_selesai)) 
                      {
                     toast('Jadwal bentrok dengan jadwal tetap ruangan.', 'error')->autoClose(4000);
                     return back()->withInput();
@@ -150,10 +155,10 @@ class BookingController extends Controller
             }
         }
 
-        $ruang = Ruang::find($request->ruang_id);
+        $ruang = Ruang::find($validated['ruang_id']);
         if ($ruang) {
             $kapasitas = (int) preg_replace('/\D+/', '', (string) $ruang->kapasitas);
-            if ($kapasitas > 0 && (int) $request->jumlah_orang > $kapasitas) {
+            if ($kapasitas > 0 && (int) $validated['jumlah_orang'] > $kapasitas) {
                 toast('Jumlah orang melebihi kapasitas ruangan.', 'error')->autoClose(4000);
                 return back()->withInput();
             }
@@ -162,17 +167,17 @@ class BookingController extends Controller
         // Simpan booking jika semua valid
         $booking = new Booking();
         $booking->user_id = Auth::id();
-        $booking->ruang_id = $request->ruang_id;
-        $booking->tanggal = $request->tanggal;
-        $booking->jam_mulai = $request->jam_mulai;
-        $booking->jam_selesai = $request->jam_selesai;
-        $booking->keterangan = $request->keterangan;
-        $booking->jumlah_orang = $request->jumlah_orang;
+        $booking->ruang_id = $validated['ruang_id'];
+        $booking->tanggal = $validated['tanggal'];
+        $booking->jam_mulai = $validated['jam_mulai'];
+        $booking->jam_selesai = $validated['jam_selesai'];
+        $booking->keterangan = $validated['keterangan'];
+        $booking->jumlah_orang = $validated['jumlah_orang'];
         $booking->status = 'pending';
         $booking->save();
 
         if ($booking->jumlah_orang === null) {
-            $booking->jumlah_orang = $request->jumlah_orang;
+            $booking->jumlah_orang = $validated['jumlah_orang'];
             $booking->save();
         }
 
@@ -196,19 +201,24 @@ class BookingController extends Controller
 
     public function update(Request $request, string $id)
     {
-        $request->validate([
+        $validated = $this->validateWithToast($request, [
             'ruang_id' => 'required|exists:ruangs,id',
             'user_id' => 'required|exists:users,id',
             'tanggal' => 'required|date',
-            'jam_mulai' => 'required|',
-            'jam_selesai' => 'required|after:jam_mulai',
+            'jam_mulai' => 'required|date_format:H:i',
+            'jam_selesai' => 'required|date_format:H:i',
             'status' => 'required|in:pending,selesai,ditolak,diterima',
             'keterangan' => 'required|string|max:255',
             'jumlah_orang' => 'required|integer|min:1',
         ]);
 
+        if (strtotime($validated['jam_selesai']) <= strtotime($validated['jam_mulai'])) {
+            toast('Jam selesai harus lebih besar dari jam mulai.', 'error')->autoClose(4000);
+            return back()->withInput();
+        }
+
         //cek tanggal
-        $tanggalBooking = Carbon::parse($request->tanggal);
+        $tanggalBooking = Carbon::parse($validated['tanggal']);
         if ($tanggalBooking->isBefore(Carbon::today())) {
             toast('Tidak bisa mengubah booking ke tanggal yang sudah lewat.', 'error')->autoClose(4000);
             return back()->withInput();
@@ -216,16 +226,16 @@ class BookingController extends Controller
 
         $booking = Booking::findOrFail($id);
 
-        // Cek bentrok dengan booking lain (kecuali dirinya sendiri)
-        $bentrok = Booking::where('ruang_id', $request->ruang_id)
-            ->where('tanggal', $request->tanggal)
+        // Cek bentrok dengan booking lain
+        $bentrok = Booking::where('ruang_id', $validated['ruang_id'])
+            ->where('tanggal', $validated['tanggal'])
             ->where('id', '!=', $id)
-            ->where(function ($data) use ($request) {
+            ->where(function ($data) use ($validated) {
                 $data
-                    ->whereBetween('jam_mulai', [$request->jam_mulai, $request->jam_selesai])
-                    ->orWhereBetween('jam_selesai', [$request->jam_mulai, $request->jam_selesai])
-                    ->orWhere(function ($booking) use ($request) {
-                        $booking->where('jam_mulai', '<=', $request->jam_mulai)->where('jam_selesai', '>=', $request->jam_selesai);
+                    ->whereBetween('jam_mulai', [$validated['jam_mulai'], $validated['jam_selesai']])
+                    ->orWhereBetween('jam_selesai', [$validated['jam_mulai'], $validated['jam_selesai']])
+                    ->orWhere(function ($booking) use ($validated) {
+                        $booking->where('jam_mulai', '<=', $validated['jam_mulai'])->where('jam_selesai', '>=', $validated['jam_selesai']);
                     });
             })
             ->exists();
@@ -236,11 +246,11 @@ class BookingController extends Controller
         }
 
         // Cek jeda 30 menit dari booking sebelumnya (selain dirinya sendiri)
-        $lastBooking = Booking::where('ruang_id', $request->ruang_id)->where('tanggal', $request->tanggal)->where('jam_selesai', '<=', $request->jam_mulai)->where('id', '!=', $id)->orderBy('jam_selesai', 'desc')->first();
+        $lastBooking = Booking::where('ruang_id', $validated['ruang_id'])->where('tanggal', $validated['tanggal'])->where('jam_selesai', '<=', $validated['jam_mulai'])->where('id', '!=', $id)->orderBy('jam_selesai', 'desc')->first();
 
         if ($lastBooking) {
-            $lastEnd = Carbon::parse($request->tanggal . ' ' . $lastBooking->jam_selesai);
-            $newStart = Carbon::parse($request->tanggal . ' ' . $request->jam_mulai);
+            $lastEnd = Carbon::parse($validated['tanggal'] . ' ' . $lastBooking->jam_selesai);
+            $newStart = Carbon::parse($validated['tanggal'] . ' ' . $validated['jam_mulai']);
             $minStart = $lastEnd->copy()->addMinutes(30);
 
             if ($newStart->lt($minStart)) {
@@ -250,44 +260,44 @@ class BookingController extends Controller
         }
 
         // Cek bentrok dengan jadwal tetap ruangan
-        $tanggal = Carbon::parse($request->tanggal);
+        $tanggal = Carbon::parse($validated['tanggal']);
         $hariBooking = $tanggal->locale('id')->isoFormat('dddd');
 
-        $jadwalTetaps = Jadwal::where('ruang_id', $request->ruang_id)->get();
+        $jadwalTetaps = Jadwal::where('ruang_id', $validated['ruang_id'])->get();
 
         foreach ($jadwalTetaps as $jadwal) {
             $hariJadwal = Carbon::parse($jadwal->tanggal)->locale('id')->isoFormat('dddd');
 
             if ($hariJadwal === $hariBooking) {
-                if (($request->jam_mulai >= $jadwal->jam_mulai && $request->jam_mulai < $jadwal->jam_selesai) || ($request->jam_selesai > $jadwal->jam_mulai && $request->jam_selesai <= $jadwal->jam_selesai) || ($request->jam_mulai <= $jadwal->jam_mulai && $request->jam_selesai >= $jadwal->jam_selesai)) {
+                if (($validated['jam_mulai'] >= $jadwal->jam_mulai && $validated['jam_mulai'] < $jadwal->jam_selesai) || ($validated['jam_selesai'] > $jadwal->jam_mulai && $validated['jam_selesai'] <= $jadwal->jam_selesai) || ($validated['jam_mulai'] <= $jadwal->jam_mulai && $validated['jam_selesai'] >= $jadwal->jam_selesai)) {
                     toast('Jadwal bentrok dengan jadwal tetap ruangan.', 'error')->autoClose(4000);
                     return back()->withInput();
                 }
             }
         }
 
-        $ruang = Ruang::find($request->ruang_id);
+        $ruang = Ruang::find($validated['ruang_id']);
         if ($ruang) {
             $kapasitas = (int) preg_replace('/\D+/', '', (string) $ruang->kapasitas);
-            if ($kapasitas > 0 && (int) $request->jumlah_orang > $kapasitas) {
+            if ($kapasitas > 0 && (int) $validated['jumlah_orang'] > $kapasitas) {
                 toast('Jumlah orang melebihi kapasitas ruangan.', 'error')->autoClose(4000);
                 return back()->withInput();
             }
         }
 
         // Update booking
-        $booking->ruang_id = $request->ruang_id;
-        $booking->user_id = $request->user_id;
-        $booking->tanggal = $request->tanggal;
-        $booking->jam_mulai = $request->jam_mulai;
-        $booking->jam_selesai = $request->jam_selesai;
-        $booking->keterangan = $request->keterangan;
-        $booking->jumlah_orang = $request->jumlah_orang;
-        $booking->status = $request->status;
+        $booking->ruang_id = $validated['ruang_id'];
+        $booking->user_id = $validated['user_id'];
+        $booking->tanggal = $validated['tanggal'];
+        $booking->jam_mulai = $validated['jam_mulai'];
+        $booking->jam_selesai = $validated['jam_selesai'];
+        $booking->keterangan = $validated['keterangan'];
+        $booking->jumlah_orang = $validated['jumlah_orang'];
+        $booking->status = $validated['status'];
         $booking->save();
 
         toast('Data booking berhasil diperbarui.', 'success')->autoClose(3000);
-        return redirect()->route('backend.booking.index'); //ini yg bagian balik ke halaman index
+        return redirect()->route('backend.booking.index');
     }
 
     public function destroy(string $id)

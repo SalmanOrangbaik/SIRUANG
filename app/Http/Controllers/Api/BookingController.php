@@ -19,6 +19,18 @@ class BookingController extends Controller
             'jam_mulai'   => 'required|date_format:H:i',
             'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
             'keterangan'  => 'nullable|string|max:1000',
+        ], [
+            'ruang_id.required' => 'Ruangan wajib dipilih.',
+            'ruang_id.exists' => 'Ruangan yang dipilih tidak valid.',
+            'tanggal.required' => 'Tanggal wajib diisi.',
+            'tanggal.date' => 'Tanggal tidak valid.',
+            'jam_mulai.required' => 'Jam mulai wajib diisi.',
+            'jam_mulai.date_format' => 'Format jam mulai tidak valid.',
+            'jam_selesai.required' => 'Jam selesai wajib diisi.',
+            'jam_selesai.date_format' => 'Format jam selesai tidak valid.',
+            'jam_selesai.after' => 'Jam selesai harus lebih besar dari jam mulai.',
+            'keterangan.string' => 'Keterangan harus berupa teks.',
+            'keterangan.max' => 'Keterangan maksimal 1000 karakter.',
         ]);
     }
 
